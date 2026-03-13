@@ -8,6 +8,9 @@ engine = create_engine(sqlite_url)
 
 # Definicja Tabeli Filmu (zgodnie z naszym diagramem)
 class MovieCache(SQLModel, table=True):
+
+    __table_args__ = {'extend_existing': True}
+    
     id: int = Field(primary_key=True)  # To będzie ID z TMDB
     title: str
     poster_url: str

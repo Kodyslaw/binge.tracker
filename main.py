@@ -37,10 +37,21 @@ def get_omdb_ratings(title):
     url = "http://www.omdbapi.com/"
     payload = {"t": title, "apikey": OMDB_KEY}
     try:
-        data = httpx.get(url, params=payload).json()
+        response = httpx.get(url, params=payload)
+        # --- DEBUG START ---
+        print(f"\n--- DEBUG OMDb ---")
+        print(f"URL: {response.url}") # Zobaczysz dokładnie jaki link został wysłany
+        print(f"Status: {response.status_code}")
+        
+        # Wyświetlamy to też w Streamlit, żebyś nie musiał zerkać do terminala
+        with st.expander("🛠️ Logi Debugowania API"):
+            st.write(f"Wysłany URL: {response.url}")
+            st.json(response.json()) # Pokaże całą surową odpowiedź z serwera
+        # --- DEBUG END ---
+        data = response.json()
         # POPRAWKA: OMDb używa "Ratings" (duża litera)
         if data.get("Response") == "True":
-            return data.get("Ratings", [])
+            return data
         return []
     except:
         return []
@@ -78,8 +89,8 @@ query = st.text_input("Wpisz tytuł filmu:", placeholder="np. Incepcja")
 
 if query:
     movie_data = get_movie_from_tmdb(query)
-    
     if movie_data:
+        omdb_data = get_omdb_ratings(movie_data['original_title'])
         col1, col2 = st.columns([1, 2])
         
         with col1:
@@ -92,31 +103,53 @@ if query:
             with st.spinner('Pobieram dane...'):
                 streaming_list = get_streaming_providers(movie_data['id'])
                 ratings_list = get_omdb_ratings(movie_data['original_title'])
+            if omdb_data and isinstance(omdb_data, dict):
+                ratings_list = omdb_data.get("Ratings", [])
+                imdb_id = omdb_data.get("imdbID")
 
             # --- Wyświetlanie Ocen ---
-            st.subheader("⭐ Oceny")
-            if ratings_list:
-                r_cols = st.columns(len(ratings_list))
-                domain_map = {
-                    "Internet Movie Database": ("IMDb", "imdb.com", "https://www.imdb.com"),
-                    "Rotten Tomatoes": ("Rotten Tomatoes", "rottentomatoes.com", "https://www.rottentomatoes.com"),
-                    "Metacritic": ("Metacritic", "metacritic.com", "https://www.metacritic.com")
-                }
-                
-                for idx, r in enumerate(ratings_list):
-                    source = r['Source']
-                    if source in domain_map:
-                        name, domain, link = domain_map[source]
-                    else:
-                        # Jeśli źródło jest nieznane, szukaj recenzji tego filmu w tym źródle
-                        name = source
-                        domain = "google.com"
-                        search_query = f"{movie_data['original_title']} {source} review".replace(" ", "+")
-                        link = f"https://www.google.com/search?q={search_query}"
+                st.subheader("⭐ Oceny")
+                if ratings_list:
+                    r_cols = st.columns(len(ratings_list))
+                    domain_map = {
+                        "Internet Movie Database": ("IMDb", "imdb.com", "https://www.imdb.com"),
+                        "Rotten Tomatoes": ("Rotten Tomatoes", "rottentomatoes.com", "https://www.rottentomatoes.com"),
+                        "Metacritic": ("Metacritic", "metacritic.com", "https://www.metacritic.com")
+                    }
+                    
+                    for idx, r in enumerate(ratings_list):
+                        source = r['Source']
                         
-                    with r_cols[idx]:
-                        render_tile(name, r['Value'], domain, link)
-
+                        if source == "Internet Movie Database" and imdb_id:
+                            name = "IMDb"
+                            domain = "imdb.com"
+                            link = f"https://www.imdb.com/title/{imdb_id}/"
+                            
+                        elif source == "Rotten Tomatoes":
+                            name = "Rotten Tomatoes"
+                            domain = "rottentomatoes.com"
+                            # Twój świetny regex do czyszczenia znaków specjalnych
+                            slug = movie_data['original_title'].lower().replace(" ","_").translate(str.maketrans('', '', '!@#$%^&*()[];:,./<>?\\|'))
+                            link = f"https://www.rottentomatoes.com/m/{slug}"
+                            
+                        elif source == "Metacritic":
+                            name = "Metacritic"
+                            domain = "metacritic.com"
+                            slug = movie_data['original_title'].lower().replace(" ","-").translate(str.maketrans('', '', '!@#$%^&*()[];:,./<>?\\|'))
+                            link = f"https://www.metacritic.com/movie/{slug}"
+                        
+                        else:
+                            name = source
+                            domain = "google.com"
+                            search_query = f"{movie_data['original_title']} {source} review".replace(" ", "+")
+                            link = f"https://www.google.com/search?q={search_query}"
+                            
+                        with r_cols[idx]:
+                            render_tile(name, r['Value'], domain, link)
+                    else:
+                        st.info("Brak ocen z api OMDb")
+                else:
+                    st.warning("Nie odnaleziono dodatkowych danych")
             # --- Wyświetlanie Streamingu ---
             st.subheader("📺 Dostępne w subskrypcji")
             if streaming_list:
@@ -126,7 +159,7 @@ if query:
                     "HBO Max": "max.com",
                     "Max": "max.com",
                     "Disney+": "disneyplus.com",
-                    "Prime Video": "amazon.com",
+                    "Prime Video": "primevideo.com",
                     "Apple TV+": "tv.apple.com",
                     "SkyShowtime": "skyshowtime.com",
                     "Player": "player.pl",
@@ -144,7 +177,7 @@ if query:
                     else:
                         # Dynamiczne wyszukiwanie w Google dla nieznanych platform
                         domain = "google.com"
-                        search_query = f"{platform} oglądaj online".replace(" ", "+")
+                        search_query = f"{movie_data['original_title']} {platform}".replace(" ", "+")
                         link = f"https://www.google.com/search?q={search_query}"
                         
                     with s_cols[idx % 4]:
