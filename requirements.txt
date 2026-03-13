@@ -1,0 +1,5 @@
+streamlit       # Twój frontend (interfejs aplikacji) w czystym Pythonie
+httpx           # Do szybkich zapytań do TMDB i Watchmode
+sqlmodel        # Do prostej obsługi bazy danych SQLite
+python-dotenv   # Do bezpiecznego wczytywania kluczy API z pliku .env
+google-generativeai # Oficjalna biblioteka od Google do obsługi Gemini

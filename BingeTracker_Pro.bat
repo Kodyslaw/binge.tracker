@@ -1,0 +1,6 @@
+@echo off
+echo Instalowanie bibliotek...
+pip install -r requirements.txt
+echo Uruchamianie BingeTracker Pro...
+streamlit run main.py
+pause

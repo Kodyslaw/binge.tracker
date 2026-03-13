@@ -1,0 +1,34 @@
+        with col2:
+            st.header(movie_data['title'])
+            st.write(f"📅 Data premiery: {movie_data['release_date']}")
+            
+            with st.spinner('Pobieram dane...'):
+                streaming = get_streaming_providers(movie_data['id'])
+                original_title = movie_data.get('original_title')
+                ratings = get_omdb_ratings(movie_data['original_title'])
+
+            st.subheader("⭐ Oceny Krytyków (OMDb)")
+            st.warning(ratings)
+
+            st.subheader("📺 Gdzie obejrzysz?")
+            st.success(streaming)
+
+            # NAPRAWIONY PRZYCISK ZAPISU
+            if st.button("➕ Dodaj do mojej listy"):
+                with Session(engine) as session:
+                    # Sprawdzamy czy film już jest w bazie
+                    existing = session.get(MovieCache, movie_data['id'])
+                    if not existing:
+                        new_movie = MovieCache(
+                            id=movie_data['id'],
+                            title=movie_data['title'],
+                            poster_url=movie_data['poster_path'],
+                            release_date=movie_data['release_date'],
+                            ai_summary=ratings, # Używamy zmiennej 'ratings' zamiast 'mood'
+                            streaming_info=streaming
+                        )
+                        session.add(new_movie)
+                        session.commit()
+                        st.toast(f"Zapisano {movie_data['title']}!")
+                    else:
+                        st.info("Ten film już jest na Twojej liście.")
