@@ -261,12 +261,12 @@ if query:
                         new_movie = MovieCache(
                             id=movie_data['id'],
                             title=movie_data['title'],
-                            original_title=movie_data['original_title'], # ZAPISUJEMY
+                            original_title=movie_data['original_title'], 
                             poster_url=movie_data['poster_path'],
                             release_date=movie_data['release_date'],
                             ai_summary=ratings_str,
                             streaming_info=streaming_str,
-                            imdb_id=omdb_data.get("imdbID")              # ZAPISUJEMY
+                            imdb_id=omdb_data.get("imdbID")              
                         )
                         session.add(new_movie)
                         session.commit()
