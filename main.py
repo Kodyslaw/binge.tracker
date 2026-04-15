@@ -214,7 +214,7 @@ if query:
                         with r_cols[idx]:
                             render_tile(name, r['Value'], domain, link)
                     else:
-                        st.info("Brak ocen z api OMDb")
+                        st.info("Linki do Ocen są generowane dynamicznie. Jeśli nie widzisz ikonek, sprawdź czy tytuł jest poprawny lub kliknij w ocenę, aby wyszukać ręcznie.")
                 else:
                     st.warning("Nie odnaleziono dodatkowych danych")
             # --- Wyświetlanie Streamingu ---
